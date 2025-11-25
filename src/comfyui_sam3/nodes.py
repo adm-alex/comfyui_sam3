@@ -19,7 +19,7 @@ class SAM3Segmentation:
         self.processor = None
         self.use_video_model = None
     
-    def load_model(self, use_video_model=False):
+    def load_model(self, use_video_model=False, checkpoint_path=None):
         """Force reload the model every time for video model to avoid state issues"""
         # Always reload video model to ensure clean state
         if use_video_model:
@@ -31,7 +31,7 @@ class SAM3Segmentation:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
             
-            self.model = build_sam3_video_model()
+            self.model = build_sam3_video_model(checkpoint_path=checkpoint_path)
             # For video model, create processor using the detector's backbone
             self.processor = Sam3Processor(self.model.detector)
             print("SAM3 video model loaded successfully")
@@ -45,7 +45,7 @@ class SAM3Segmentation:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
             
-            self.model = build_sam3_image_model()
+            self.model = build_sam3_image_model(checkpoint_path=checkpoint_path)
             self.processor = Sam3Processor(self.model)
             print("SAM3 image model loaded successfully")
             self.use_video_model = use_video_model
@@ -89,6 +89,10 @@ class SAM3Segmentation:
                     "default": "",
                     "tooltip": "(Video model only) Comma-separated list of object IDs to track (e.g., '0,1,2'). Leave empty to track all objects."
                 }),
+                "checkpoint_path": ("STRING", {
+                    "default": "",
+                    "tooltip": "Path to the SAM3 video model checkpoint"
+                }),
             },
         }
     
@@ -98,7 +102,7 @@ class SAM3Segmentation:
     FUNCTION = "segment"
     CATEGORY = "SAM3"
     
-    def segment(self, image, prompt, threshold, min_width_pixels, min_height_pixels, use_video_model, object_ids=""):
+    def segment(self, image, prompt, threshold, min_width_pixels, min_height_pixels, use_video_model, object_ids="", checkpoint_path=None):
         """
         Perform segmentation on the input image using the text prompt
         
@@ -115,7 +119,7 @@ class SAM3Segmentation:
             Tuple of (segmented_image, masks, mask_combined)
         """
         # Load model if not already loaded
-        self.load_model(use_video_model=use_video_model)
+        self.load_model(use_video_model=use_video_model, checkpoint_path=checkpoint_path)
         
         if use_video_model:
             # Use video model for temporal tracking across batch
